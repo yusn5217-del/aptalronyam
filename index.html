@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aptal Ronyam - Güneş Sistemi</title>
+<title>Prensex Ronyam - Güneş Sistemi</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
@@ -197,7 +197,7 @@
 <!-- PASSWORD SCREEN -->
 <div id="password-screen">
   <div class="lock-icon">✦</div>
-  <h1>aptal ronyam</h1>
+  <h1>prensex ronyam</h1>
   <p>şifre korumalı</p>
   <input id="password-input" type="password" placeholder="şifre" autocomplete="off" spellcheck="false" />
   <div id="password-error">yanlış şifre</div>
@@ -206,7 +206,7 @@
 
 <!-- MAIN CONTENT (initially hidden via JS) -->
 <div id="text-overlay">
-  <div class="line1">aptal</div>
+  <div class="line1">prensex</div>
   <div class="line2">ronyam</div>
 </div>
 <div class="subtitle">✦ gezegene tıkla • fareyle döndür ✦</div>
@@ -358,6 +358,108 @@ scene.add(fillLight1);
 const fillLight2 = new THREE.DirectionalLight(0xff8844, 0.2);
 fillLight2.position.set(3, -3, 8);
 scene.add(fillLight2);
+
+// --- 3D Rose ---
+function createRose() {
+  const group = new THREE.Group();
+  const petalColors = [0xff1a5e, 0xff2d6e, 0xff4080, 0xff5590, 0xff6aa0];
+  
+  function createPetal(width, height, curl, color, opacity) {
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 0);
+    shape.bezierCurveTo(width * 0.3, height * 0.2, width * 0.6, height * 0.3, 0, height);
+    shape.bezierCurveTo(-width * 0.6, height * 0.3, -width * 0.3, height * 0.2, 0, 0);
+    
+    const geo = new THREE.ShapeGeometry(shape);
+    const positions = geo.attributes.position.array;
+    for (let i = 0; i < positions.length; i += 3) {
+      const x = positions[i];
+      const y = positions[i + 1];
+      positions[i + 1] = y + curl * (y / height) * (y / height) * height * 0.4;
+      positions[i] = x * (1 + curl * (y / height) * 0.2);
+    }
+    geo.computeVertexNormals();
+    
+    const mat = new THREE.MeshStandardMaterial({
+      color: color,
+      roughness: 0.3,
+      metalness: 0.1,
+      transparent: true,
+      opacity: opacity,
+      side: THREE.DoubleSide,
+      emissive: color,
+      emissiveIntensity: 0.05,
+    });
+    return new THREE.Mesh(geo, mat);
+  }
+  
+  const layers = [
+    { count: 5, width: 0.15, height: 0.35, curl: 0.6, radius: 0.05, color: 0xff1a4e, opacity: 1, angleOffset: 0 },
+    { count: 6, width: 0.2, height: 0.4, curl: 0.5, radius: 0.08, color: 0xff2d5e, opacity: 1, angleOffset: 0.3 },
+    { count: 7, width: 0.25, height: 0.5, curl: 0.3, radius: 0.12, color: 0xff4070, opacity: 0.95, angleOffset: 0.6 },
+    { count: 8, width: 0.3, height: 0.55, curl: 0.1, radius: 0.18, color: 0xff5580, opacity: 0.9, angleOffset: 0.9 },
+    { count: 10, width: 0.35, height: 0.5, curl: -0.1, radius: 0.25, color: 0xff6a90, opacity: 0.85, angleOffset: 1.2 },
+    { count: 12, width: 0.35, height: 0.4, curl: -0.2, radius: 0.32, color: 0xff7aa0, opacity: 0.7, angleOffset: 1.5 },
+  ];
+  
+  layers.forEach((layer) => {
+    for (let i = 0; i < layer.count; i++) {
+      const angle = (i / layer.count) * Math.PI * 2 + layer.angleOffset;
+      const petal = createPetal(layer.width, layer.height, layer.curl, layer.color, layer.opacity);
+      const radius = layer.radius;
+      petal.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius * 0.1, Math.sin(angle) * radius * 0.5);
+      petal.rotation.z = -angle + Math.PI / 2;
+      petal.rotation.x = layer.curl * 0.3;
+      petal.rotation.y = Math.sin(angle) * 0.1;
+      const s = 1 + (layer.count - i) * 0.02;
+      petal.scale.set(s, s, s);
+      group.add(petal);
+    }
+  });
+  
+  // Stem
+  const stemShape = new THREE.Shape();
+  stemShape.moveTo(-0.02, 0);
+  stemShape.lineTo(0.02, 0);
+  stemShape.lineTo(0.015, -3);
+  stemShape.lineTo(-0.015, -3);
+  stemShape.closePath();
+  const stemGeo = new THREE.ShapeGeometry(stemShape);
+  const stemMat = new THREE.MeshStandardMaterial({ color: 0x2d5a1e, roughness: 0.8 });
+  const stem = new THREE.Mesh(stemGeo, stemMat);
+  stem.position.set(0, -0.5, 0);
+  group.add(stem);
+  
+  // Leaves
+  function createLeaf(side) {
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 0);
+    shape.bezierCurveTo(0.1, 0.05, 0.15, 0.08, 0, 0.2);
+    shape.bezierCurveTo(-0.15, 0.08, -0.1, 0.05, 0, 0);
+    const geo = new THREE.ShapeGeometry(shape);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x3a7a28, roughness: 0.7, side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(0, -0.8, 0);
+    mesh.scale.set(side * 1.5, 1.5, 1);
+    mesh.rotation.z = 0.3 * side;
+    mesh.rotation.x = 0.2;
+    return mesh;
+  }
+  group.add(createLeaf(1));
+  group.add(createLeaf(-1));
+  
+  group.position.set(-2.5, -0.5, 1.5);
+  group.scale.set(1.8, 1.8, 1.8);
+  return group;
+}
+
+const rose = createRose();
+scene.add(rose);
+
+// Rose accent light
+const roseLight = new THREE.PointLight(0xff3388, 0.8, 5);
+roseLight.position.set(-2.5, 0, 1.5);
+scene.add(roseLight);
 
 // --- Orbit paths ---
 function createOrbitPath(radius) {
@@ -717,6 +819,17 @@ function animate() {
   });
   
   stars.rotation.y = t * 0.0005;
+  
+  // Rose animation
+  if (rose) {
+    rose.rotation.y = Math.sin(t * 0.15) * 0.1;
+    rose.position.y = -0.5 + Math.sin(t * 0.3) * 0.08;
+    rose.children.forEach((child, i) => {
+      if (child.isMesh && i < 50) {
+        child.rotation.z += 0.001;
+      }
+    });
+  }
   
   controls.update();
   composer.render();
